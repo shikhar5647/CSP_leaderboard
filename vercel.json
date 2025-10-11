@@ -1,0 +1,12 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "regions": ["bom1"],
+  "env": {
+    "DATABASE_PATH": "./tournament.db",
+    "UPLOAD_DIR": "./uploads",
+    "PYTHON_PATH": "python3"
+  }
+}
