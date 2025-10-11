@@ -1,4 +1,4 @@
-import { getSubmissions } from '@/lib/db';
+import { getSubmissions } from '/lib/db';
 
 export async function GET() {
   try {
