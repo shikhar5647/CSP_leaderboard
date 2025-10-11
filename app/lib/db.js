@@ -49,3 +49,8 @@ export function deleteSubmission(id) {
   
   return submission;
 }
+
+export function getSubmissionByRollNumber(rollNumber) {
+  const stmt = db.prepare('SELECT * FROM submissions WHERE rollNumber = ? ORDER BY timestamp DESC LIMIT 1');
+  return stmt.get(rollNumber);
+}
