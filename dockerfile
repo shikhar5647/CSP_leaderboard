@@ -4,7 +4,7 @@
 FROM node:18-alpine AS base
 
 # Install Python and build dependencies
-RUN apk add --no-cache python3 py3-pip build-base python3-dev
+RUN apk add --no-cache python3 py3-pip build-base python3-dev python
 
 # Set working directory
 WORKDIR /app
@@ -25,7 +25,7 @@ RUN npm run build
 FROM node:18-alpine AS runner
 
 # Install Python runtime
-RUN apk add --no-cache python3
+RUN apk add --no-cache python
 
 WORKDIR /app
 
