@@ -1,7 +1,7 @@
+/** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverActions: true,
-  },
+  output: 'standalone',
+  
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals.push({
@@ -10,6 +10,7 @@ const nextConfig = {
     }
     return config;
   },
+  
 }
 
 module.exports = nextConfig
