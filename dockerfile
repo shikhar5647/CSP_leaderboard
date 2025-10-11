@@ -1,59 +1,59 @@
-# ===== Dockerfile =====
-# Multi-stage build for optimal image size
+# ===== Dockerfile (recommended: Debian-slim) =====
+# Multi-stage build for smaller final image and reproducible python availability
 
-FROM node:18-alpine AS base
+### BUILD STAGE ###
+FROM node:20-slim AS builder
 
-# Install Python and build dependencies
-RUN apk add --no-cache python3 py3-pip build-base python3-dev python
+# Install python3, pip and build tools for any native modules
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+    python3 python3-pip python3-dev build-essential ca-certificates curl \
+ && ln -sf /usr/bin/python3 /usr/bin/python \
+ && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files and install deps
 COPY package*.json ./
-
-# Install Node dependencies
 RUN npm ci
 
-# Copy application code
+# Copy rest of app and build
 COPY . .
-
-# Build Next.js application
+# If your Next app requires environment variables during build, set them here (only if needed)
 RUN npm run build
 
-# Production stage
-FROM node:18-alpine AS runner
+### RUNTIME STAGE ###
+FROM node:20-slim AS runner
 
-# Install Python runtime
-RUN apk add --no-cache python
+# Install python runtime only (keeps runtime image smaller)
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3 python3-pip ca-certificates \
+ && ln -sf /usr/bin/python3 /usr/bin/python \
+ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Set environment to production
 ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
-# Copy necessary files from builder
-COPY --from=base /app/public ./public
-COPY --from=base /app/.next/standalone ./
-COPY --from=base /app/.next/static ./.next/static
-COPY --from=base /app/python ./python
-COPY --from=base /app/node_modules ./node_modules
+# Copy the Next standalone output and other necessary files from builder
+# The following copies assume you used `next build`/standalone mode and have .next/standalone
+COPY --from=builder /app/.next/standalone ./         
+COPY --from=builder /app/.next/static ./.next/static  
+COPY --from=builder /app/public ./public              
+COPY --from=builder /app/python ./python              
+COPY --from=builder /app/node_modules ./node_modules  
 
-# Create uploads directory
-RUN mkdir -p uploads
+# Create uploads dir & drop privileges
+RUN mkdir -p /app/uploads \
+ && groupadd --gid 1001 nextgroup || true \
+ && useradd --uid 1001 --gid 1001 --create-home --shell /bin/false nextuser || true \
+ && chown -R nextuser:nextgroup /app
 
-# Create a non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-RUN chown -R nextjs:nodejs /app
+USER nextuser
 
-USER nextjs
-
-# Expose port
 EXPOSE 3000
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
-
-# Start the application
+# Entrypoint should launch the standalone server created by next/standalone build
 CMD ["node", "server.js"]
